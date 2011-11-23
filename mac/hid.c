@@ -585,6 +585,18 @@ static void hid_report_callback(void *context, IOReturn result, void *sender,
 	struct input_report *rpt;
 	hid_device *dev = context;
 
+	// appears that on OSX 10.7, the context isn't reliable, so use the IOHIDDeviceRef (sender)
+	// to find it in the list
+	pthread_mutex_lock(&device_list_mutex);
+	dev = device_list;
+	while (dev && dev->device_handle != sender)
+	{
+		dev = dev->next;
+	}
+	pthread_mutex_unlock(&device_list_mutex);
+	// if we don't have a device, something weird happened, lets ignore
+	if (dev == NULL) return;
+
 	/* Make a new Input Report object */
 	rpt = calloc(1, sizeof(struct input_report));
 	rpt->data = calloc(1, report_length);
